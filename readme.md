@@ -6,9 +6,9 @@ Materia: Fundamentos de algebra
 
 ---
 
-# 🛡️ Cifrado Hill 2x2: Documentación del Proyecto
+# Cifrado Hill 2x2: Documentación del Proyecto
 
-## 📝 Descripción del Proyecto y Algoritmo
+## Descripción del Proyecto y Algoritmo
 
 Este proyecto implementa el **Algoritmo de Cifrado Hill** con una matriz clave de **2x2**. Es un cifrado de sustitución polialfabética que opera en bloques de dos letras (dígramas).
 
@@ -43,7 +43,7 @@ El sistema utiliza la aritmética modular $\text{módulo 26}$ para el alfabeto i
 
 ---
 
-## 🔢 Matemáticas Detrás de la Implementación
+## Matemáticas Detrás de la Implementación
 
 ### El Alfabeto y el Módulo
 
@@ -95,7 +95,7 @@ $$\mathbf{p} \equiv \mathbf{K}^{-1} \cdot \mathbf{C} \pmod{26}$$
 
 ---
 
-## 📝 Documentación del Proyecto: Estilos CSS Personalizados
+## Documentación del Proyecto: Estilos CSS Personalizados
 
 ---
 
