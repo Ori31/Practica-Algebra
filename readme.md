@@ -95,7 +95,7 @@ $$\mathbf{p} \equiv \mathbf{K}^{-1} \cdot \mathbf{C} \pmod{26}$$
 
 ---
 
-## Documentación del Proyecto: Estilos CSS Personalizados
+## FDocumentación del Proyecto: Estilos CSS Personalizados
 
 ---
 

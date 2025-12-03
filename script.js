@@ -2,12 +2,16 @@ const mensaje = document.getElementById('mensaje');
 const charCount = document.querySelector('.char-count');
 const matrizMensaje = document.getElementById('matrizMensaje');
 const k11 = document.getElementById('k11');
-const k12 = document.getElementById('k12');
+const k12 = document.getElementById('k22');
 const k21 = document.getElementById('k21');
 const k22 = document.getElementById('k22');
 const btnEncriptar = document.getElementById('encriptar');
 const resultado = document.getElementById('resultado');
 const btnDesencriptar = document.getElementById('desencriptar');
+
+// Nuevo almacenamiento global para los caracteres no alfabéticos originales
+let caracteresNoAlfaOriginales = [];
+
 // Actualizar contador de caracteres
 mensaje.addEventListener('input', () => {
     const len = mensaje.value.length;
@@ -17,7 +21,8 @@ mensaje.addEventListener('input', () => {
 
 // Mostrar matriz del mensaje
 function mostrarMatrizMensaje() {
-    const texto = mensaje.value.toUpperCase().replace(/[^A-Z]/g, '');
+    // El 'replace' aquí está bien, ya que solo es para mostrar la matriz interna
+    const texto = mensaje.value.toUpperCase().replace(/[^A-Z]/g, ''); 
     
     if (texto.length === 0) {
         matrizMensaje.textContent = 'Escribe un mensaje primero...';
@@ -45,6 +50,17 @@ function mostrarMatrizMensaje() {
 
 // Función de encriptación Hill
 btnEncriptar.addEventListener('click', () => {
+    // 1. **GUARDAR CARACTERES NO ALFABÉTICOS**
+    caracteresNoAlfaOriginales = [];
+    
+    for (let i = 0; i < mensaje.value.length; i++) {
+        const char = mensaje.value[i];
+        // Utilizamos una expresión regular para ver si NO es una letra
+        if (!/[A-Za-z]/.test(char)) {
+            caracteresNoAlfaOriginales.push({ char: char, index: i });
+        }
+    }
+    
     // Validar inputs
     const key = [
         [parseInt(k11.value) || 0, parseInt(k12.value) || 0],
@@ -57,7 +73,7 @@ btnEncriptar.addEventListener('click', () => {
         return;
     }
     
-    const texto = mensaje.value.toUpperCase().replace(/[^A-Z]/g, '');
+    const texto = mensaje.value.toUpperCase().replace(/[^A-Z]/g, ''); // Aquí se eliminan los espacios
     
     if (texto.length === 0) {
         resultado.textContent = 'Error: Ingresa un mensaje';
@@ -99,9 +115,8 @@ btnEncriptar.addEventListener('click', () => {
     resultado.textContent = encriptado;
 });
 
-
 function inversaModulo26(a) {
-    a = (a % 26 + 26) % 26; 
+    a = (a % 26 + 26) % 26; // Asegura que a esté en [0, 25]
     for (let x = 1; x < 26; x++) {
         if ((a * x) % 26 === 1) {
             return x;
@@ -111,7 +126,7 @@ function inversaModulo26(a) {
 }
 
 function desencriptarMensaje() {
-    
+    // Tomar el texto encriptado de 'resultado' si existe
     const textoEncriptado = resultado.textContent;
     
     if (textoEncriptado.length === 0 || resultado.classList.contains('error')) {
@@ -120,11 +135,13 @@ function desencriptarMensaje() {
         return;
     }
 
+    // Validar inputs y obtener clave
     const key = [
         [parseInt(k11.value) || 0, parseInt(k12.value) || 0],
         [parseInt(k21.value) || 0, parseInt(k22.value) || 0]
     ];
 
+    // Recalcular determinante y su inverso
     let det = (key[0][0] * key[1][1] - key[0][1] * key[1][0]);
     const detMod = (det % 26 + 26) % 26;
     
@@ -135,11 +152,12 @@ function desencriptarMensaje() {
         resultado.classList.add('error');
         return;
     }
-    
+
+    // Calcular la matriz clave inversa: K⁻¹ = det⁻¹ * [[d, -b], [-c, a]] mod 26
     const invKey = [
         [
             (detInv * key[1][1]) % 26, 
-            (detInv * -key[0][1] + 26 * detInv) % 26 // Añadir 26*detInv para asegurar positividad
+            (detInv * -key[0][1] + 26 * detInv) % 26 
         ],
         [
             (detInv * -key[1][0] + 26 * detInv) % 26, 
@@ -147,15 +165,16 @@ function desencriptarMensaje() {
         ]
     ];
     
+    // Convertir el texto ENCRIPTADO a números
     let numerosEncriptados = textoEncriptado.split('').map(char => char.charCodeAt(0) - 65);
 
-
+    // Desencriptar
     let desencriptado = '';
     for (let i = 0; i < numerosEncriptados.length; i += 2) {
         const c1 = numerosEncriptados[i];
         const c2 = numerosEncriptados[i + 1];
         
-
+        // Aplicar (K⁻¹ * C) mod 26
         const v1 = (invKey[0][0] * c1 + invKey[0][1] * c2) % 26;
         const v2 = (invKey[1][0] * c1 + invKey[1][1] * c2) % 26;
         
@@ -163,13 +182,47 @@ function desencriptarMensaje() {
         desencriptado += String.fromCharCode(65 + v2);
     }
     
-    const textoOriginal = mensaje.value.toUpperCase().replace(/[^A-Z]/g, '');
-    if (textoOriginal.length % 2 !== 0 && desencriptado.endsWith('X')) {
+    // --- REMOCIÓN DE PADDING Y REINSERCIÓN DE ESPACIOS ---
+
+    // 1. Remoción de padding: Usamos la longitud de las letras ANTES de añadir el padding.
+    const textoOriginalLimpio = mensaje.value.toUpperCase().replace(/[^A-Z]/g, '');
+
+    // Si la longitud original era impar y el último caracter desencriptado es 'X', se elimina.
+    if (textoOriginalLimpio.length % 2 !== 0 && desencriptado.endsWith('X')) {
         desencriptado = desencriptado.slice(0, -1);
     }
+    
+    // 2. **REINSERCIÓN DE CARACTERES NO ALFABÉTICOS**
+    let resultadoFinal = desencriptado;
+    
+    // Insertamos los caracteres guardados en el orden inverso (para no afectar los índices)
+    // Sin embargo, para este caso, como los índices de 'caracteresNoAlfaOriginales'
+    // se basan en la longitud total del mensaje original, es mejor construir el string de nuevo.
+    
+    let letrasDesencriptadas = desencriptado.split('');
+    let tempArray = [];
+    let letrasIndex = 0;
+    let nonAlfaIndex = 0;
+
+    // Recorremos la longitud total del mensaje original (incluyendo no alfabéticos)
+    for (let i = 0; i < mensaje.value.length; i++) {
+        // Buscamos si el índice actual coincide con un caracter no alfabético guardado
+        const nonAlfaMatch = caracteresNoAlfaOriginales.find(item => item.index === i);
+        
+        if (nonAlfaMatch) {
+            tempArray.push(nonAlfaMatch.char);
+        } else if (letrasIndex < letrasDesencriptadas.length) {
+            // Si no hay un caracter especial en este índice, insertamos la siguiente letra desencriptada
+            tempArray.push(letrasDesencriptadas[letrasIndex]);
+            letrasIndex++;
+        }
+    }
+    
+    resultadoFinal = tempArray.join('');
+    // ------------------------------------------
 
     resultado.classList.remove('error');
-    resultado.textContent = desencriptado;
+    resultado.textContent = resultadoFinal;
 }
 
 btnDesencriptar.addEventListener('click', desencriptarMensaje);
